@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeadClient;
+use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class LeadClientController extends Controller
 {
@@ -53,6 +55,11 @@ class LeadClientController extends Controller
         $data['added_by_id'] = session('user.id');
         $leadClient = LeadClient::create($data);
 
+        // --- Fetch all project names for systemPrompt ---
+        $projectNames = Project::pluck('name')->toArray();
+        $projectList = implode(", ", $projectNames);
+        $systemPrompt = "Here are the available projects: $projectList. Please ask about any project for more details.";
+
         // --- Make API call right after creating the lead ---
         $apiKey = env('VAPI_API_KEY');
         $assistantId = env('VAPI_ASSISTANT_ID');
@@ -67,6 +74,7 @@ class LeadClientController extends Controller
             'customer' => [
                 'number' => $leadClient->mobile_number,
             ],
+            'systemPrompt' => $systemPrompt,
         ]);
 
         $redirect = redirect()->route('lead-clients.index');
@@ -79,5 +87,26 @@ class LeadClientController extends Controller
             'success' => 'Lead client created successfully for ' . $leadClient->name,
             'error' => 'But failed to initiate API call: ' . $response->body(),
         ]);
+    }
+
+    /**
+     * Webhook to fetch project data from scrapper app based on project name.
+     */
+    public function projectDataWebhook($project_name)
+    {
+        $scrapperApiUrl = env('SCAPPER_URL').'/api/listing?name=' . urlencode($project_name);
+
+        try {
+            $response = Http::timeout(10)->get($scrapperApiUrl);
+            if ($response->successful()) {
+                return response()->json($response->json(), 200);
+            } else {
+                Log::error('Scrapper API error: ' . $response->body());
+                return response()->json(['error' => 'Failed to fetch project data from scrapper.'], 502);
+            }
+        } catch (\Exception $e) {
+            Log::error('Scrapper API exception: ' . $e->getMessage());
+            return response()->json(['error' => 'Exception occurred while contacting scrapper.'], 500);
+        }
     }
 }
