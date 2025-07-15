@@ -14,4 +14,6 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+Route::get('/call-history', [LeadClientController::class, 'callHistory'])->name('call-history.index');
+
 Route::get('/webhook/project-data/{project_name}', [LeadClientController::class, 'projectDataWebhook'])->name('project.webhook');
