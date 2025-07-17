@@ -1,6 +1,11 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\LeadClientController;
- 
-Route::post('/outbound-call', [LeadClientController::class, 'outboundCall']); 
+use App\Http\Controllers\Api\LeadClientApiController;
+
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
+
+Route::post('/lead-clients', [LeadClientApiController::class, 'store']);
