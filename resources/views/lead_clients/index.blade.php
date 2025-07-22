@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lead Clients</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             background: #f8fafc;
@@ -56,6 +57,54 @@
             background-color: #f8d7da;
             color: #721c24;
         }
+        
+        /* Pagination Styling */
+        .pagination {
+            margin: 0;
+            gap: 4px;
+        }
+        .pagination .page-link {
+            border: 1px solid #e3e6f0;
+            color: #5a5c69;
+            background-color: #fff;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.35rem;
+            transition: all 0.15s ease-in-out;
+            font-weight: 500;
+            min-width: 40px;
+            text-align: center;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        .pagination .page-link:hover {
+            background-color: #eaecf4;
+            border-color: #d1d3e2;
+            color: #2e59d9;
+            transform: translateY(-1px);
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.25);
+        }
+        .pagination .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: #fff;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(102, 126, 234, 0.4);
+        }
+        .pagination .page-item.disabled .page-link {
+            color: #b7b9cc;
+            background-color: #f8f9fc;
+            border-color: #e3e6f0;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .pagination .page-link:focus {
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            outline: none;
+        }
+        
+        /* Arrow icons styling */
+        .pagination .page-link i {
+            font-size: 0.875rem;
+        }
+        
         @media (max-width: 600px) {
             .header-bar {
                 flex-direction: column;
@@ -66,6 +115,23 @@
                 margin-top: 1rem;
                 width: 100%;
                 justify-content: flex-start;
+            }
+            
+            /* Mobile pagination */
+            .pagination {
+                gap: 2px;
+            }
+            .pagination .page-link {
+                padding: 0.375rem 0.5rem;
+                min-width: 35px;
+                font-size: 0.875rem;
+            }
+            
+            /* Hide page numbers on very small screens, show only arrows */
+            @media (max-width: 400px) {
+                .pagination .page-item:not(.page-item:first-child):not(.page-item:last-child) {
+                    display: none;
+                }
             }
         }
     </style>
@@ -113,6 +179,50 @@
         <div class="tab-content" id="mainTabsContent">
             <!-- Lead Clients Tab -->
             <div class="tab-pane fade show active" id="leads" role="tabpanel">
+                
+                <!-- Search and Filter Form -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="GET" action="{{ route('lead-clients.index') }}" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="search" class="form-label">Search</label>
+                                <input type="text" class="form-control" id="search" name="search" 
+                                       value="{{ $search ?? '' }}" placeholder="Search by name, email, or phone">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="">All Statuses</option>
+                                    <option value="new_lead" {{ ($status ?? '') == 'new_lead' ? 'selected' : '' }}>New Lead</option>
+                                    <option value="spam" {{ ($status ?? '') == 'spam' ? 'selected' : '' }}>Spam</option>
+                                    <option value="junk" {{ ($status ?? '') == 'junk' ? 'selected' : '' }}>Junk</option>
+                                    <option value="clear" {{ ($status ?? '') == 'clear' ? 'selected' : '' }}>Clear</option>
+                                    <option value="unmarked" {{ ($status ?? '') == 'unmarked' ? 'selected' : '' }}>Unmarked</option>
+                                    <option value="uncontacted" {{ ($status ?? '') == 'uncontacted' ? 'selected' : '' }}>Uncontacted</option>
+                                    <option value="contacted" {{ ($status ?? '') == 'contacted' ? 'selected' : '' }}>Contacted</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="lead_type" class="form-label">Lead Type</label>
+                                <select class="form-select" id="lead_type" name="lead_type">
+                                    <option value="">All Types</option>
+                                    <option value="manual" {{ ($leadType ?? '') == 'manual' ? 'selected' : '' }}>Manual</option>
+                                    <option value="webhook" {{ ($leadType ?? '') == 'webhook' ? 'selected' : '' }}>Webhook</option>
+                                    <option value="ppc" {{ ($leadType ?? '') == 'ppc' ? 'selected' : '' }}>PPC</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <div class="d-grid gap-2 w-100">
+                                    <button type="submit" class="btn btn-primary">Filter</button>
+                                    @if($search || $status || $leadType)
+                                        <a href="{{ route('lead-clients.index') }}" class="btn btn-outline-secondary">Clear</a>
+                                    @endif
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
                 <table class="table table-bordered">
                     <thead>
                         <tr>
@@ -143,7 +253,59 @@
                         @endforelse
                     </tbody>
                 </table>
-                {!! $leadClients->links() !!}
+                
+                <!-- Custom Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <div class="text-muted">
+                        Showing {{ $leadClients->firstItem() ?? 0 }} to {{ $leadClients->lastItem() ?? 0 }} of {{ $leadClients->total() }} results
+                    </div>
+                    <nav aria-label="Lead clients pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            {{-- Previous Page Link --}}
+                            @if ($leadClients->onFirstPage())
+                                <li class="page-item disabled">
+                                    <span class="page-link">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </span>
+                                </li>
+                            @else
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $leadClients->previousPageUrl() }}" rel="prev">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                            @endif
+
+                            {{-- Pagination Elements --}}
+                            @foreach ($leadClients->getUrlRange(1, $leadClients->lastPage()) as $page => $url)
+                                @if ($page == $leadClients->currentPage())
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ $page }}</span>
+                                    </li>
+                                @else
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                                    </li>
+                                @endif
+                            @endforeach
+
+                            {{-- Next Page Link --}}
+                            @if ($leadClients->hasMorePages())
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $leadClients->nextPageUrl() }}" rel="next">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            @else
+                                <li class="page-item disabled">
+                                    <span class="page-link">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                </li>
+                            @endif
+                        </ul>
+                    </nav>
+                </div>
             </div>
 
             <!-- Recent Calls Tab -->
@@ -206,7 +368,7 @@
             </div>
         </div>
     </div>
-
+    <br><br>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function showCallHistory(leadClientId) {
